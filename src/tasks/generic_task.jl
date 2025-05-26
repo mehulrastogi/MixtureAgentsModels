@@ -35,6 +35,7 @@ Per julia guidelines, it's recommended to explicitly define the type of each fie
     forced::VB = falses(ntrials)
     sess_inds::VA = get_sess_inds(new_sess)
     sess_inds_free::VA = get_sess_inds(new_sess_free)
+    leftprobs::VB
 end
 
 """
@@ -74,11 +75,70 @@ end
 
 Task-specific function to simulate behavior data; to be called by `simulate_task(sim_options, model_options)` in `simulate_task.jl` 
 Required for parameter recovery simulations
+
+    Let's simulate the matching pennies task here (just a coin flip for now )
 """
-function simulate_task(model::M,agents::Array{A},sim_options::GenericSim,new_sess::AbstractArray{Bool}) where {M <: MixtureAgentsModel, A <: Agent}
+function simulate_task(model::M,agents::Array{A},sim_options::GenericSim,new_sess::AbstractArray{Bool};seed=nothing, sim_agent_type="CoinFlip") where {M <: MixtureAgentsModel, A <: Agent}
     @unpack ntrials = sim_options
     
     # code to simulate task data. 
+
+
+    choices = Array{Int}(undef,ntrials)
+    rewards = Array{Int}(undef,ntrials)
+    leftprobs = falses(ntrials) # boolean vector for left probabilities, if applicable
+    outcomes = Array{Int}(undef,ntrials) # outcomes of the choices, e.g. 1=Left, 2=Right
+
+    data = GenericData(ntrials=ntrials, choices=choices, rewards=rewards, new_sess=new_sess, leftprobs=leftprobs)
+
+    
+    if !isnothing(seed)
+        Random.seed!(seed) # set seed for reproducibility
+    end
+
+    x = zeros(length(agents),ntrials)
+    Q = SizedMatrix{length(agents)}(init_Q(agents))
+    z = zeros(Int,ntrials)
+    pz = 1
+
+
+    for t = 1:ntrials
+        if new_sess[t]
+            Q .= init_Q(agents) # reset Q values at the start of a new session
+        end
+
+
+        # determine the choice and outcome prob 
+        pL,pz,z[t] = sim_choice_prob(model,x,t,pz,new_sess)
+
+        # determine the choice by the agent 
+        if rand() < pL
+            choices[t] = 1 # primary choice (L)
+        else
+            choices[t] = 2 # secondary choice (R)
+        end
+
+        # determine the outcome 
+        if sim_agent_type == "CoinFlip"
+            # choose between 1 and 2 with equal probability
+            if rand() < 0.5
+                outcomes[t] = 1 # Left
+            else
+                outcomes[t] = 2 # Right
+            end
+        end
+
+        # determine the reward based on the choice and outcome
+        if choices[t] == outcomes[t]
+            rewards[t] = -1 # omission if the choice matches the outcome
+        else
+            rewards[t] = 1 # reward if the choice does not match the outcome
+        end
+
+        # update the Q values based on the choice and reward
+        next_Q!(Q,agents,data,t)
+
+    end
     
     # return populated GenericData struct
     return data
@@ -116,7 +176,8 @@ function load_generic_mat(file="data/example_task_data.mat")
             :choices => vec(Int.(matdata["choices"])), # convert to int, make sure it's a vector
             :rewards => vec(Int.(matdata["rewards"])), # convert to int, make sure it's a vector
             # :stim => vec(Int.(matdata["stim"])), # convert to int, make sure it's a vector
-            :new_sess => vec(matdata["new_sess"] .== 1)) # convert to boolean, make sure it's a vector
+            :new_sess => vec(matdata["new_sess"] .== 1)), # convert to boolean, make sure it's a vector
+            :leftprobs => vec(matdata["leftprobs"] .== 1) # convert to boolean, make sure it's a vector
     
         # return GenericData struct
         return GenericData(D)
@@ -132,7 +193,8 @@ function load_generic_csv(file="data/example_task_data.csv")
         :choices=>Int.(df.choices),
         :rewards=>Int.(df.rewards),
         # :stim=>Int.(df.stim),
-        :new_sess=>Bool.(df.new_sess)
+        :new_sess=>Bool.(df.new_sess),
+        :leftprobs => Bool.(df.leftprobs)
     )
 
     D[:ntrials] = length(D[:choices])

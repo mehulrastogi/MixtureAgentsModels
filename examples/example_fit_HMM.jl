@@ -68,6 +68,6 @@ model,agents,ll = optimize(data,model,agents,model_options,agent_options)
 # plot fit model and hidden state probabilities in example sessions
 plot_model(model,agents,agent_options,data)
 # save fit to .mat file
-savefit("example_fit_HMM.mat",model,model_options,agents,agent_options,data)
-# load fit from .mat file
-model,model_options,agents,agent_options,data,ll = loadfit("example_fit_HMM.mat")
+# savefit("example_fit_HMM.mat",model,model_options,agents,agent_options,data)
+# # load fit from .mat file
+# model,model_options,agents,agent_options,data,ll = loadfit("example_fit_HMM.mat")

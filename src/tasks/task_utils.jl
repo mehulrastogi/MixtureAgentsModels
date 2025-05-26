@@ -20,7 +20,7 @@ Optional arguments:
 - `return_z`: default = `false`. if `true`, return generated latent state sequence `z` in addition to task data
 - `seed`: seed for random number generator (default = `nothing`)
 """
-function simulate(sim_options::S,model_options::T,agent_options::AgentOptions;init_model::Bool=true,return_z=false,seed=nothing,agents_prior=nothing) where {S <: SimOptions, T <: ModelOptions}
+function simulate(sim_options::S,model_options::T,agent_options::AgentOptions;task="TwoStep",init_model::Bool=true,return_z=false,sim_agent_type="CoinFlip",seed=nothing,agents_prior=nothing) where {S <: SimOptions, T <: ModelOptions}
     
     new_sess,ntrials,sim_options = simulate(sim_options,seed)
     if !isnothing(seed)
@@ -38,11 +38,16 @@ function simulate(sim_options::S,model_options::T,agent_options::AgentOptions;in
         model = initialize(model_options,agents;ntrials=ntrials,new_sess=new_sess)
     end
 
-    if return_z
-        data,z = simulate(model,agents,sim_options,new_sess;return_z=return_z,seed=seed)
-    return data, model, agents, z
+    if task == "TwoStep"
+        if return_z
+            data,z = simulate(model,agents,sim_options,new_sess;return_z=return_z,seed=seed)
+            return data, model, agents, z
+        else
+            data = simulate(model,agents,sim_options,new_sess;seed=seed)
+            return data, model, agents
+        end
     else
-        data = simulate(model,agents,sim_options,new_sess;seed=seed)
+        data = simulate_task(model,agents,sim_options,new_sess;seed=seed,sim_agent_type=sim_agent_type)
         return data, model, agents
     end
 end
