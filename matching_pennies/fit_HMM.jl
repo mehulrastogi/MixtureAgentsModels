@@ -25,7 +25,7 @@ model_options = ModelOptionsHMM(nstates=nstates,tol=tol,maxiter=maxiter,nstarts=
 
 
 # # load fit from .mat file
-# model,model_options,agents,agent_options,data_mp,ll = loadfit("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_fit_HMM.mat")
+model,model_options,agents,agent_options,data_mp,ll = loadfit("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_fit_HMM.mat")
 
 
 ##- fit model to data -##
@@ -38,4 +38,4 @@ model,agents,ll = optimize(data_mp,model,agents,model_options,agent_options)
 # plot fit model and hidden state probabilities in example sessions
 plot_model(model,agents,agent_options,data_mp)
 # save fit to .mat file
-savefit("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_fit_HMM.mat",model,model_options,agents,agent_options,data_mp)
+# savefit("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_fit_HMM.mat",model,model_options,agents,agent_options,data_mp)

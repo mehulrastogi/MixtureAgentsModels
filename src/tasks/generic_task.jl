@@ -126,6 +126,31 @@ function simulate_task(model::M,agents::Array{A},sim_options::GenericSim,new_ses
             else
                 outcomes[t] = 2 # Right
             end
+        elseif sim_agent_type == "LeftBias"
+            # choose Left with a probability of 0.7, Right with a probability of 0.3
+            if rand() < 0.95
+                outcomes[t] = 1 # Left
+            else
+                outcomes[t] = 2 # Right
+            end
+        elseif sim_agent_type == "MP"
+            # check if the MatchingPenniesAgent is initialized if not, initialize it
+            global mp_agent
+            if !@isdefined(mp_agent)
+                mp_agent = MatchingPenniesAgent()
+            end
+
+            if new_sess[t]
+                initialize_patterns!(mp_agent) # initialize patterns at the start of a new session
+            end
+
+            computer_choice = choose_next_move(mp_agent)
+            if computer_choice == "L"
+                outcomes[t] = 1 # Left
+            else
+                outcomes[t] = 2 # Right
+            end
+
         end
 
         # determine the reward based on the choice and outcome
@@ -133,6 +158,13 @@ function simulate_task(model::M,agents::Array{A},sim_options::GenericSim,new_ses
             rewards[t] = -1 # omission if the choice matches the outcome
         else
             rewards[t] = 1 # reward if the choice does not match the outcome
+        end
+
+        if sim_agent_type == "MP"
+            # need to update the MatchingPenniesAgent(computer) with the choice and reward
+            choice_ = choices[t] == 1 ? "L" : "R"
+            reward_ = rewards[t] == 1 ? 1 : 0
+            update_agent!(mp_agent,choice_,reward_)
         end
 
         # update the Q values based on the choice and reward
@@ -201,4 +233,10 @@ function load_generic_csv(file="data/example_task_data.csv")
     # D[:new_sess] = D[:new_sess] .== 1 # convert to boolean vector
 
     return GenericData(D)
+end
+
+
+function get_outcome_mp(choices,rewards,trial_num;n_gram =5)
+
+    return 1
 end

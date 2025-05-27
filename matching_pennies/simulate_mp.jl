@@ -16,12 +16,29 @@ fit_symbs = [:α,:α]  # symbols for each parameter to fit
 fit_params = [1,2,0]   # index linking fit_symbs to corresponding agent in agents_sim
 agent_options = AgentOptions(agents_sim,fit_symbs,fit_params)
 
+
+
 ##- define HMM options -##
 nstates = 2    # number of hidden states
 # user set initial values for HMM parameters to be used for simulation
 β0 = [0.79 1.25; -0.82 -0.19; -0.01 0.1] # (nagents x nstates) matrix of agent weights
 π0 = [1.0,0.0] # (nstates x 1) vector of initial state probabilities
 A0 = [0.9 0.1; 0.01 0.99] # (nstates x nstates) transition matrix
+
+load_pretrained = true
+if load_pretrained
+    # Load the model from a pretrained model on real data
+    model,model_options,agents_sim,agent_options,data_mp,ll = loadfit("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_fit_HMM.mat")
+
+    # use pretrained model parameters
+    β0 = model.β
+    π0 = model.π
+    A0 = model.A
+end
+
+
+
+
 maxiter = 100  # maximum number of iterations for EM algorithm
 nstarts = 1    # number of reinitializations for EM algorithm
 tol = 1E-4     # tolerance for convergence of EM algorithm
@@ -29,12 +46,17 @@ model_options = ModelOptionsHMM(nstates=nstates,β0=β0,π0=π0,A0=A0,maxiter=ma
 
 ##- simulate data, fit model, and plot results -##
 # simulate data, set init_model to false to use user-defined model parameters
-data,model_sim,agents_sim = simulate(sim_options,model_options,agent_options;task="Generic",init_model=false,sim_agent_type="CoinFlip")
+data,model_sim,agents_sim = simulate(sim_options,
+                                     model_options,
+                                     agent_options;
+                                     task="Generic",
+                                     init_model=false,
+                                     sim_agent_type="MP")
 # plot simulated model and hidden state probabilities in example sessions
 plot_model(model_sim,agents_sim,agent_options,data)
 
 
-
+# need to plot the choices !!
 
 
 # # fit model to simulated data

@@ -18,6 +18,7 @@ export TransReward, CR, CO, UR, UO
 export Choice,Reward
 export Persev, NoveltyPref, Bias, Gambler
 export DeltaClicks, DeltaClicksZ, Intercept
+
 # agent functions
 export agents_mean, miller2017, venditto2023, twostep_glm
 export get_params, get_param, initialize_agent, initialize
@@ -75,6 +76,7 @@ include("tasks/twostep_task.jl")
 include("tasks/task_utils.jl")
 include("tasks/pclicks_task.jl")
 
+include("agents/MatchingPennies.jl")
 include("agents/NoveltyPref.jl")
 include("agents/Bias.jl")
 include("agents/Choice.jl")
@@ -122,5 +124,8 @@ include("utils/model_comparison.jl")
 include("utils/model_presets.jl")
 include("utils/agent_presets.jl")
 
+
+
+export MatchingPenniesAgent, choose_next_move, update_agent!, initialize_patterns!
 
 end
