@@ -6,7 +6,8 @@ using MixtureAgentsModels # import package
 ########################################################################################
 ##- load in data -##
 # load two-step data using custom function that parses twostep .mat files
-file = "/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/matchingpennies_formatted.csv" # path to data file           # rat number
+subjid_ = "JOA-M-0014"
+file = "/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_$subjid_.csv" # path to data file           # rat number
 data_mp = load_generic(file)
 
 ##- define agent options -##
@@ -24,18 +25,18 @@ tol = 1E-4    # tolerance for convergence of EM algorithm
 model_options = ModelOptionsHMM(nstates=nstates,tol=tol,maxiter=maxiter,nstarts=nstarts)
 
 
-# # load fit from .mat file
-model,model_options,agents,agent_options,data_mp,ll = loadfit("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_fit_HMM.mat")
+# # # load fit from .mat file
+# model,model_options,agents,agent_options,data_mp,ll = loadfit("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_fit_HMM.mat")
 
 
 ##- fit model to data -##
 model,agents,ll = optimize(data_mp,model_options,agent_options)
-# need more iterations? restart from previous fit
-model,agents,ll = optimize(data_mp,model,agents,model_options,agent_options)
+# # need more iterations? restart from previous fit
+# model,agents,ll = optimize(data_mp,model,agents,model_options,agent_options)
 
 # plot_model(model,agents,agent_options)
 
 # plot fit model and hidden state probabilities in example sessions
 plot_model(model,agents,agent_options,data_mp)
 # save fit to .mat file
-# savefit("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_fit_HMM.mat",model,model_options,agents,agent_options,data_mp)
+savefit("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_fit_HMM_$subjid_.mat",model,model_options,agents,agent_options,data_mp)

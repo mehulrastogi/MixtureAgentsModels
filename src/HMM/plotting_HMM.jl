@@ -48,18 +48,19 @@ end
 
 function plot_model(model::ModelHMM,agents::AbstractArray{A},options::AgentOptions,data::D;return_plots=false,plot_example=false,sessions=nothing,sort_args...) where {A<:Agent,D<:RatData}
     πplot,Aplot,βplot,αplot = plot_model(model,agents,options;return_plots=true,sort_args...)
-    explot,avgplot,_ = plot_gammas(model,agents,data;sessions=sessions)
+    explot,avgplot,exsessplot,reward_plot,_ = plot_gammas(model,agents,data;sessions=sessions)
 
-    l = @layout [grid(3,1)]
+    l = @layout [grid(5,1)]
     if return_plots
-        return πplot,Aplot,βplot,αplot,avgplot,explot
+        return πplot,Aplot,βplot,αplot,avgplot,explot,exsessplot,reward_plot
     elseif plot_example
+
         if isnothing(αplot)
-            l = @layout [a b{0.85w}; d e{0.8w}; f]
-            return plot(πplot,βplot,Aplot,avgplot,explot,layout=l,framestyle=:box, size=(900,750), margin=5mm)
+            l = @layout [a b{0.85w}; d e{0.8w}; f ; g; h]
+            return plot(πplot,βplot,Aplot,avgplot,explot,exsessplot,reward_plot,layout=l,framestyle=:box, size=(2250,1875), margin=5mm)
         else
-            l = @layout [a b{0.6w} c{0.2w}; d e{0.8w}; f]
-            return plot(πplot,βplot,αplot,Aplot,avgplot,explot,layout=l,framestyle=:box, size=(900,750), margin=5mm)
+            l = @layout [a b{0.6w} c{0.2w}; d e{0.8w}; f; g; h]
+            return plot(πplot,βplot,αplot,Aplot,avgplot,explot,exsessplot,reward_plot,layout=l,framestyle=:box, size=(2250,1875), margin=5mm)
         end
     else
         if isnothing(αplot)
@@ -295,22 +296,89 @@ function plot_gammas(model,agents,data;sessions::S=nothing,xax="trial") where S 
     plot_inds = reduce(vcat,plot_inds)
     if xax == "trial"
         explot = plot()
-        plot!(explot,leftprobs[plot_inds],color=:gray53,style=:dash,lw=3,label="reward flips")
+        # plot!(explot,leftprobs[plot_inds],color=:gray53,style=:dash,lw=3,label="reward flips")
         plot!(explot,gammas[:,plot_inds]',lw=3,c=collect(1:ns)',label="")
         plot!(explot,new_sess_free[plot_inds],color=:black, legend=:outertop,lw=3,label="session break")
 
         xlabel!(explot,"trial")
         title!(explot,"example state prob.")
+        ylabel!("probability")
+
+        # plot having choice and rewards
+        # L choice by red vertical lines and R choice by blue vertical lines
+        # Reward by circle above the line
+        exsessplot = plot(ylims=(-2.5,2.5), 
+                        yticks=([-1, 1], 
+                        ["Right", "Left"]), 
+                        grid = false, 
+                        legend =false )
+
+        @unpack choices, rewards, new_sess = data
+        for (i, idx) in enumerate(plot_inds)
+            if choices[idx] == 1  # Left choice
+                plot!(exsessplot, [i, i], [0.1, 1], color=:red, linewidth=1, alpha=0.7, label="")
+            else  # Right choice
+                plot!(exsessplot, [i, i], [-0.1, -1], color=:blue, linewidth=1, alpha=0.7, label="")
+            end
+        end
+        # scatter plot for rewards df.rewards
+
+        # Add circles for rewards
+        left_rewards = findall(i -> choices[i] == 1 && rewards[i] == 1, plot_inds)
+        right_rewards = findall(i -> choices[i] == 2 && rewards[i] == 1, plot_inds)
+        
+        if !isempty(left_rewards)
+            scatter!(exsessplot, left_rewards, fill(1.5, length(left_rewards)), 
+                    markersize=1.0, markerstrokewidth=0.3, markerstrokecolor=:red,
+                    markershape=:circle, markercolor=:white, label="")
+        end
+        
+        if !isempty(right_rewards)
+            scatter!(exsessplot, right_rewards, fill(-1.5, length(right_rewards)), 
+                    markersize=1.0, markerstrokewidth=0.3, markerstrokecolor=:blue,
+                    markershape=:circle, markercolor=:white, label="")
+        end
+
+
+        plot!(exsessplot,new_sess_free[plot_inds],color=:black, legend=:outertop,lw=2,label="")
+        
+
+        xlabel!(exsessplot,"trial")
+        ylabel!(exsessplot,"choice")
+        title!(exsessplot,"example session(s) choices")
+
+
+        # plot the reward rate 
+
+        reward_rate = zeros(length(plot_inds))
+        start_sess_ind = findfirst(new_sess[plot_inds])
+        idx = 1
+        for i in plot_inds
+            if new_sess_free[i] == 1
+                start_sess_ind = i
+            end
+            # println("start_sess_ind: ", start_sess_ind, " i: ", i)
+            reward_sum = sum(rewards[start_sess_ind:i].==1)
+            reward_rate[idx] = reward_sum / (i - start_sess_ind + 1)
+            idx += 1
+        end
+
+        reward_plot = plot(ylims=(0,1.0))
+        plot!(reward_plot,plot_inds, reward_rate, color=:green, lw=2, label="reward rate")
+        xlabel!(reward_plot,"trial")
+        ylabel!(reward_plot,"reward rate")
+
 
     elseif xax == "time"
         times = copy(trial_start) ./ 60
         deleteat!(times,forced)
         explot = plot(times[plot_inds].-times[plot_inds[1]],smooth(gammas[:,plot_inds],10,2)',lw=3,legend=false)
         plot!(explot,times[plot_inds].-times[plot_inds[1]],new_sess_free[plot_inds],color=:black)
-        xlabel!(explot,"time (minutes)")
+        xlabel!(explot,"time (minutes)")\
+        ylabel!("probability")
     end
-    ylabel!("probability")
-    return explot,avgplot,df,df_avg
+    
+    return explot,avgplot,exsessplot,reward_plot,df,df_avg
 end
 
 function plot_tr(model,agents;err=nothing)

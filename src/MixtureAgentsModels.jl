@@ -32,7 +32,7 @@ export RatData, TwoStepData, PClicksData, GenericData
 export SimOptions, TwoStepSim, GenericSim
 # task functions
 export load_twostep, load_pclicks, load_generic
-export simulate, split_data, ratdata_tasks
+export simulate, split_data, ratdata_tasks, simulate_2player
 
 ##-- models --##
 export ModelOptions, ModelOptionsHMM, ModelOptionsDrift

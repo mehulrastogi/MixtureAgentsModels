@@ -15,7 +15,7 @@ mutable struct MatchingPenniesAgent
     best_pvalue::Float64
     best_bias::Float64
     
-    function MatchingPenniesAgent(alpha=0.05, trials_back=5)
+    function MatchingPenniesAgent(alpha=0.05, trials_back=4)
         new(Dict{String, Tuple{Int, Int, Float64}}(), 
             Dict{String, Tuple{Int, Int, Float64}}(), 
             String[], Int[], alpha, trials_back, false, 1.0, 0.5)
@@ -26,6 +26,13 @@ function initialize_patterns!(agent::MatchingPenniesAgent)
     # Initialize choice-only patterns
     # For 0-back (global stats)
     agent.choice_patterns[""] = (0, 0, 1.0)
+
+    agent.best_bias = 0.5  # Initialize best bias
+    agent.best_pvalue = 1.0  # Initialize best p-value
+
+    # reset history
+    agent.choice_history = String[]
+    agent.reward_history = Int[]
     
     # For 1-5 back
     for n in 1:agent.trials_back

@@ -10,6 +10,32 @@ function ratdata_tasks(task::Union{AbstractString,Nothing}=nothing)
 end
 
 
+function simulate_2player(sim_options::S,
+                    model_options_1::T,model_options_2::T,
+                    agent_options_1::AgentOptions,agent_options_2::AgentOptions;
+                    seed=nothing) where {S <: SimOptions, T <: ModelOptions}
+    
+    new_sess,ntrials,sim_options = simulate(sim_options,seed)
+    if !isnothing(seed)
+        Random.seed!(seed)
+    end
+    
+
+    agents_1 = agent_options_1.agents
+    model_1 = initialize(model_options_1,agents_1;ntrials=ntrials,new_sess=new_sess)
+
+    agents_2 = agent_options_2.agents
+    model_2 = initialize(model_options_2,agents_2;ntrials=ntrials,new_sess=new_sess)
+
+    
+    data_1,data_2 = simulate_2player_task(model_1,model_2,
+                                agents_1,agents_2,
+                                sim_options,new_sess;
+                                seed=seed)
+    return data_1, model_1, agents_1, data_2, model_2, agents_2
+    
+end
+
 """
     simulate(sim_options::S,model_options::T,agent_options::AgentOptions;init_hypers::Bool=true,return_z=false,seed=nothing) where {S <: SimOptions, T <: ModelOptions}
 
@@ -20,7 +46,7 @@ Optional arguments:
 - `return_z`: default = `false`. if `true`, return generated latent state sequence `z` in addition to task data
 - `seed`: seed for random number generator (default = `nothing`)
 """
-function simulate(sim_options::S,model_options::T,agent_options::AgentOptions;task="TwoStep",init_model::Bool=true,return_z=false,sim_agent_type="CoinFlip",seed=nothing,agents_prior=nothing) where {S <: SimOptions, T <: ModelOptions}
+function simulate(sim_options::S,model_options::T,agent_options::AgentOptions;task="TwoStep",init_model::Bool=true,return_z=false,sim_agent_type="CoinFlip",learn_online=false,seed=nothing,agents_prior=nothing) where {S <: SimOptions, T <: ModelOptions}
     
     new_sess,ntrials,sim_options = simulate(sim_options,seed)
     if !isnothing(seed)
@@ -47,7 +73,7 @@ function simulate(sim_options::S,model_options::T,agent_options::AgentOptions;ta
             return data, model, agents
         end
     else
-        data = simulate_task(model,agents,sim_options,new_sess;seed=seed,sim_agent_type=sim_agent_type)
+        data = simulate_task(model,agents,sim_options,new_sess;seed=seed,sim_agent_type=sim_agent_type,learn_online=learn_online)
         return data, model, agents
     end
 end

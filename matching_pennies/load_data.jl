@@ -9,6 +9,7 @@ ds = Parquet2.Dataset("/home/mehul/repos/MixtureAgentsModels/matching_pennies/da
 df = DataFrame(ds)
 
 # get a subset of the data subjid in ['JOA-M-0002','JOA-M-0003', ]
+subjid_ = "JOA-M-0014"
 
 df = @chain df begin
     @transform(
@@ -17,12 +18,14 @@ df = @chain df begin
         :subjid = String.(:subjid),
 
     )
-    @rsubset(:subjid in ["JOA-M-0003"])
-    @rsubset(:protocol == "MatchingPennies")
+    @rsubset(:subjid in [subjid_])
+    # @rsubset(:protocol == "MatchingPennies")
     @rsubset(:choice in ["L","R"]) # 0 = left, 1 = right
+    @rsubset(:comp_prediction in ["L","R"])
     @select(:subjid,:protocol,:sessid, :trialnum, :choice,:reward,:comp_prediction,:RT,:leftlicknum,:rightlicknum,:p_stochastic, :p_leftbias, :p_rightbias)
 end
 
+unique(df.protocol)
 
 num_unique_sessions = length(unique(df.sessid))
 
@@ -69,15 +72,16 @@ df_formatted = @chain df begin
         :choices = ifelse(:choice == "R", 1,2), # convert choice to 1 for left, 2 for right
         :rewards = ifelse(:reward == 1, 1,-1), # convert reward to 1 for reward, -1 for no reward
         :new_sess = detect_change(:sessid), # detect change in session id
-        :leftprobs = 1
+        :leftprobs = 1,
+        :outcomes = ifelse(:comp_prediction == "R", 1,2) # convert outcome to 1 for left, 2 for right
     )
     @select(
-        :choices, :rewards, :new_sess, :leftprobs
+        :choices, :rewards, :new_sess, :leftprobs,:outcomes
     )
 end
 
 # save this parquet file
 using CSV 
 
-CSV.write("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/matchingpennies_formatted.csv", df_formatted)
+CSV.write("/home/mehul/repos/MixtureAgentsModels/matching_pennies/data/mp_$subjid_.csv", df_formatted)
 
